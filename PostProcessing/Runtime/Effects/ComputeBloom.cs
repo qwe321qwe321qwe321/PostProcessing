@@ -13,6 +13,12 @@ namespace UnityEngine.Rendering.PostProcessing
         public BoolParameter HighQualityBloom = new BoolParameter { value = false };
 
         /// <summary>
+        /// The strength of the bloom filter.
+        /// </summary>
+        [Min(0f), Tooltip("Strength of the bloom filter. Values higher than 1 will make bloom contribute more energy to the final render.")]
+        public FloatParameter intensity = new FloatParameter { value = 0f };
+        
+        /// <summary>
         /// Filters out pixels under this level of brightness. This value is expressed in
         /// gamma-space.
         /// </summary>
@@ -25,9 +31,13 @@ namespace UnityEngine.Rendering.PostProcessing
         /// </summary>
         [Range(0f, 1f), Tooltip("Makes transitions between under/over-threshold gradual. 0 for a hard threshold, 1 for a soft threshold).")]
         public FloatParameter softKnee = new FloatParameter { value = 0.5f };
-
-        [Min(0f), Tooltip("A modulator controlling how much bloom is added back into the image.")]
-        public FloatParameter BloomStrength = new FloatParameter { value = 0.1f };
+        
+        /// <summary>
+        /// Clamps pixels to control the bloom amount. This value is expressed in gamma-space.
+        /// </summary>
+        [Tooltip("Clamps pixels to control the bloom amount. Value is in gamma-space.")]
+        public FloatParameter clamp = new FloatParameter { value = 65472f };
+        
 
         [Range(0f, 1f), Tooltip("Controls the \"focus\" of the blur.  High values spread out more causing a haze.")]
         public FloatParameter BloomUpsampleFactor = new FloatParameter { value = 0.65f };
@@ -75,6 +85,7 @@ namespace UnityEngine.Rendering.PostProcessing
         public int g_upsampleBlendFactor { get; private set; }
 
         private int g_bloomThreshold;
+        private int g_Clamp;
         int[] g_aBloomUAV1;    // 640x384 (1/3)
         int[] g_aBloomUAV2;    // 320x192 (1/6)  
         int[] g_aBloomUAV3;    // 160x96  (1/12)
@@ -107,6 +118,7 @@ namespace UnityEngine.Rendering.PostProcessing
             g_inverseOutputSize = Shader.PropertyToID("g_inverseOutputSize");
             g_upsampleBlendFactor = Shader.PropertyToID("g_upsampleBlendFactor");
             g_bloomThreshold = Shader.PropertyToID("g_bloomThreshold");
+            g_Clamp = Shader.PropertyToID("g_Clamp");
 
             g_aBloomUAV1 = new int[2];
             g_aBloomUAV2 = new int[2];
@@ -160,8 +172,8 @@ namespace UnityEngine.Rendering.PostProcessing
             int screenHeight = context.screenHeight;
 #endif
 
-            int kBloomWidth = screenWidth > 2560 ? 1280 : 640;
-            int kBloomHeight = screenHeight > 1440 ? 768 : 384;
+            int kBloomWidth = screenWidth >= 2560 ? 1280 : 640;
+            int kBloomHeight = screenHeight >= 1440 ? 768 : 384;
 
 #if UNITY_SWITCH
             kBloomWidth /= 2;
@@ -216,6 +228,9 @@ namespace UnityEngine.Rendering.PostProcessing
             var threshold = new Vector4(lthresh, lthresh - knee, knee * 2f, 0.25f / knee);
             cmd.SetComputeVectorParam(bloomExtractAndDownsampleHdrCS, g_bloomThreshold, threshold);
             
+            float lclamp = Mathf.GammaToLinearSpace(settings.clamp.value);
+            cmd.SetComputeFloatParam(bloomExtractAndDownsampleHdrCS, g_Clamp, lclamp);
+            
             cmd.Dispatch2D(bloomExtractAndDownsampleHdrCS, 0, kBloomWidth, kBloomHeight);
 
             // Prepare for the next downsample passes
@@ -228,7 +243,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             // The difference between high and low quality bloom is that high quality sums 5 octaves with a 2x frequency scale, and the low quality
             // sums 3 octaves with a 4x frequency scale.
-            if (settings.HighQualityBloom.value)
+            if (highQuality)
             {
                 cmd.SetComputeTextureParam(downsampleShader, 0, Result1, g_aBloomUAV2[0]);
                 cmd.SetComputeTextureParam(downsampleShader, 0, Result2, g_aBloomUAV3[0]);
@@ -253,7 +268,7 @@ namespace UnityEngine.Rendering.PostProcessing
                 //// Each dispatch group is 8x8 threads, but each thread reads in 2x2 source texels (bilinear filter).
                 cmd.Dispatch2D(downsampleShader, 0, kBloomWidth / 2, kBloomHeight / 2);
 
-                upsampleBlendFactor = upsampleBlendFactor * 2.0f / 3.0f;
+                //upsampleBlendFactor = upsampleBlendFactor * 2.0f / 3.0f;
 
                 //// Blur then upsample and blur two times
                 BlurBuffer(cmd, bloomUAVDesc5, g_aBloomUAV5, g_aBloomUAV5[0], 1.0f, computeShaders);
@@ -262,7 +277,7 @@ namespace UnityEngine.Rendering.PostProcessing
             }
 
             var linearColor = settings.color.value.linear;
-            float intensity = RuntimeUtilities.Exp2(settings.BloomStrength.value / 10f) - 1f;
+            float intensity = RuntimeUtilities.Exp2(settings.intensity.value / 10f) - 1f;
             var shaderSettings = new Vector4(1.0f, intensity, settings.dirtIntensity.value, 1.0f);
 
             // Lens dirtiness
