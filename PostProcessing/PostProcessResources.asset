@@ -142,5 +142,5 @@ MonoBehaviour:
     BloomDownsample4: {fileID: 7200000, guid: 657b37d7373efd34faa214606a77f4cc, type: 3}
     BloomDownsample2: {fileID: 7200000, guid: e31be72946c760240ac36760307ffdf2, type: 3}
     BloomBlur: {fileID: 7200000, guid: 08b26ef8007283a48b11df2369e30db4, type: 3}
-    BloomUpsampleAndBlur: {fileID: 7200000, guid: 11e3a35c91bfe80408782df022c84215,
+    BloomUpsampleAndBlur: {fileID: 7200000, guid: 0e6fc63a81e74d1fba32f2634dbe4676,
       type: 3}
