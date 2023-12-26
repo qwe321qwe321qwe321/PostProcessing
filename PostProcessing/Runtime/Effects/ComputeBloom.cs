@@ -12,8 +12,19 @@ namespace UnityEngine.Rendering.PostProcessing
         [Tooltip("High quality blurs 5 octaves of bloom; low quality only blurs 3.")]
         public BoolParameter HighQualityBloom = new BoolParameter { value = false };
 
-        [Range(0f, 8f), Tooltip("The threshold luminance above which a pixel will start to bloom.")]
-        public FloatParameter BloomThreshold = new FloatParameter { value = 1.0f };
+        /// <summary>
+        /// Filters out pixels under this level of brightness. This value is expressed in
+        /// gamma-space.
+        /// </summary>
+        [Min(0f), Tooltip("Filters out pixels under this level of brightness. Value is in gamma-space.")]
+        public FloatParameter threshold = new FloatParameter { value = 1f };
+
+        /// <summary>
+        /// Makes transition between under/over-threshold gradual (0 = hard threshold, 1 = soft
+        /// threshold).
+        /// </summary>
+        [Range(0f, 1f), Tooltip("Makes transitions between under/over-threshold gradual. 0 for a hard threshold, 1 for a soft threshold).")]
+        public FloatParameter softKnee = new FloatParameter { value = 0.5f };
 
         [Min(0f), Tooltip("A modulator controlling how much bloom is added back into the image.")]
         public FloatParameter BloomStrength = new FloatParameter { value = 0.1f };
@@ -198,7 +209,13 @@ namespace UnityEngine.Rendering.PostProcessing
             cmd.SetComputeTextureParam(bloomExtractAndDownsampleHdrCS, 0, BloomResult, g_aBloomUAV1[0]);
             cmd.SetComputeTextureParam(bloomExtractAndDownsampleHdrCS, 0, SourceTex, context.source);
             cmd.SetComputeVectorParam(bloomExtractAndDownsampleHdrCS, g_inverseOutputSize, new Vector4(1.0f / kBloomWidth, 1.0f / kBloomHeight, 0, 0));
-            cmd.SetComputeFloatParam(bloomExtractAndDownsampleHdrCS, g_bloomThreshold, settings.BloomThreshold.value);
+           
+            // Prefiltering parameters
+            float lthresh = Mathf.GammaToLinearSpace(settings.threshold.value);
+            float knee = lthresh * settings.softKnee.value + 1e-5f;
+            var threshold = new Vector4(lthresh, lthresh - knee, knee * 2f, 0.25f / knee);
+            cmd.SetComputeVectorParam(bloomExtractAndDownsampleHdrCS, g_bloomThreshold, threshold);
+            
             cmd.Dispatch2D(bloomExtractAndDownsampleHdrCS, 0, kBloomWidth, kBloomHeight);
 
             // Prepare for the next downsample passes

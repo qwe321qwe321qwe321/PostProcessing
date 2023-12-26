@@ -28,7 +28,26 @@ RWTexture2D<float3> BloomResult : register(u0);
 cbuffer cb0
 {
     float2 g_inverseOutputSize;
-    float g_bloomThreshold;
+    float4 g_bloomThreshold;
+}
+
+//
+// Quadratic color thresholding
+// curve = (threshold - knee, knee * 2, 0.25 / knee)
+//
+float3 QuadraticThreshold(float3 color, float threshold, float3 curve)
+{
+    // Pixel brightness
+    float br = max(max(color.r, color.g), color.b);
+
+    // Under-threshold part: quadratic curve
+    float rq = clamp(br - curve.x, 0.0, curve.y);
+    rq = curve.z * rq * rq;
+
+    // Combine and apply the brightness response curve.
+    color *= max(rq, br - threshold) / max(br, 1.0e-4);
+
+    return color;
 }
 
 [numthreads(8, 8, 1)]
@@ -52,13 +71,13 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
     const float kSmallEpsilon = 0.0001;
 
-    float ScaledThreshold = g_bloomThreshold /** Exposure[1]*/;    // BloomThreshold / Exposure
+    //float ScaledThreshold = g_bloomThreshold /** Exposure[1]*/;    // BloomThreshold / Exposure
 
     // We perform a brightness filter pass, where lone bright pixels will contribute less.
-    color1 *= max(kSmallEpsilon, luma1 - ScaledThreshold) / (luma1 + kSmallEpsilon);
-    color2 *= max(kSmallEpsilon, luma2 - ScaledThreshold) / (luma2 + kSmallEpsilon);
-    color3 *= max(kSmallEpsilon, luma3 - ScaledThreshold) / (luma3 + kSmallEpsilon);
-    color4 *= max(kSmallEpsilon, luma4 - ScaledThreshold) / (luma4 + kSmallEpsilon);
+    color1 *= max(kSmallEpsilon, QuadraticThreshold(color1, g_bloomThreshold.x, g_bloomThreshold.yzw)) / (luma1 + kSmallEpsilon);
+    color2 *= max(kSmallEpsilon, QuadraticThreshold(color2, g_bloomThreshold.x, g_bloomThreshold.yzw)) / (luma2 + kSmallEpsilon);
+    color3 *= max(kSmallEpsilon, QuadraticThreshold(color3, g_bloomThreshold.x, g_bloomThreshold.yzw)) / (luma3 + kSmallEpsilon);
+    color4 *= max(kSmallEpsilon, QuadraticThreshold(color4, g_bloomThreshold.x, g_bloomThreshold.yzw)) / (luma4 + kSmallEpsilon);
 
     // The shimmer filter helps remove stray bright pixels from the bloom buffer by inversely weighting
     // them by their luminance.  The overall effect is to shrink bright pixel regions around the border.
