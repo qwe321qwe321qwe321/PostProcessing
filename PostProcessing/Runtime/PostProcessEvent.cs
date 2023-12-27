@@ -23,6 +23,11 @@ namespace UnityEngine.Rendering.PostProcessing
         /// and before the final pass that does FXAA and applies dithering.
         /// </summary>
         AfterStack = 2,
+        
+        /// <summary>
+        /// Effects at the last point of the builtin stack right before Uber pass. 
+        /// </summary>
+        BeforeBuiltinUberStack = 3,
     }
 
     // Box free comparer for our `PostProcessEvent` enum, else the runtime will box the type when

@@ -240,6 +240,9 @@ namespace UnityEngine.Rendering.PostProcessing
         internal bool physicalCamera;
 #endif
 
+	    // Get the internal uberSheet for custom stack effects.
+	    public PropertySheet GetBuiltinStackUberSheet() => uberSheet;
+
         /// <summary>
         /// Resets the state of this context object. This is called by the render pipeline on every
         /// frame and allows re-using the same context object between frames without having to

@@ -169,6 +169,9 @@ namespace UnityEngine.Rendering.PostProcessing
 
         [SerializeField]
         List<SerializedBundleRef> m_AfterStackBundles;
+        
+        [SerializeField]
+        List<SerializedBundleRef> m_BeforeBuiltinUberStackBundles;
 
         /// <summary>
         /// Pre-ordered effects mapped to available injection points.
@@ -307,6 +310,7 @@ namespace UnityEngine.Rendering.PostProcessing
             RuntimeUtilities.CreateIfNull(ref m_BeforeTransparentBundles);
             RuntimeUtilities.CreateIfNull(ref m_BeforeStackBundles);
             RuntimeUtilities.CreateIfNull(ref m_AfterStackBundles);
+            RuntimeUtilities.CreateIfNull(ref m_BeforeBuiltinUberStackBundles);
 
             // Create a bundle for each effect type
             m_Bundles = new Dictionary<Type, PostProcessBundle>();
@@ -322,13 +326,15 @@ namespace UnityEngine.Rendering.PostProcessing
             UpdateBundleSortList(m_BeforeTransparentBundles, PostProcessEvent.BeforeTransparent);
             UpdateBundleSortList(m_BeforeStackBundles, PostProcessEvent.BeforeStack);
             UpdateBundleSortList(m_AfterStackBundles, PostProcessEvent.AfterStack);
+            UpdateBundleSortList(m_BeforeBuiltinUberStackBundles, PostProcessEvent.BeforeBuiltinUberStack);
 
             // Push all sorted lists in a dictionary for easier access
             sortedBundles = new Dictionary<PostProcessEvent, List<SerializedBundleRef>>(new PostProcessEventComparer())
             {
                 { PostProcessEvent.BeforeTransparent, m_BeforeTransparentBundles },
                 { PostProcessEvent.BeforeStack,       m_BeforeStackBundles },
-                { PostProcessEvent.AfterStack,        m_AfterStackBundles }
+                { PostProcessEvent.AfterStack,        m_AfterStackBundles },
+                { PostProcessEvent.BeforeBuiltinUberStack,  m_BeforeBuiltinUberStackBundles }
             };
 
             // Done
@@ -1454,6 +1460,30 @@ namespace UnityEngine.Rendering.PostProcessing
             context.source = tempTarget;
             context.destination = finalDestination;
             return tempTarget;
+        }
+        
+        int RenderEffect(PostProcessBundle effect, PostProcessRenderContext context, bool useTempTarget = false)
+        {
+	        if (!effect.settings.IsEnabledAndSupported(context))
+		        return -1;
+
+	        if (m_IsRenderingInSceneView && !effect.attribute.allowInSceneView)
+		        return -1;
+
+	        if (!useTempTarget)
+	        {
+		        effect.renderer.Render(context);
+		        return -1;
+	        }
+
+	        var finalDestination = context.destination;
+	        var tempTarget = m_TargetPool.Get();
+	        context.GetScreenSpaceTemporaryRT(context.command, tempTarget, 0, context.sourceFormat);
+	        context.destination = tempTarget;
+	        effect.renderer.Render(context);
+	        context.source = tempTarget;
+	        context.destination = finalDestination;
+	        return tempTarget;
         }
 
         bool ShouldGenerateLogHistogram(PostProcessRenderContext context)
