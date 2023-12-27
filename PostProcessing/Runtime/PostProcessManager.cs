@@ -302,17 +302,26 @@ namespace UnityEngine.Rendering.PostProcessing
         // Faster version of OverrideSettings to force replace values in the global state
         void ReplaceData(PostProcessLayer postProcessLayer)
         {
+	        Profiling.Profiler.BeginSample("ReplaceData");
             foreach (var settings in m_BaseSettings)
             {
-                if (!settings.enabled)
+                if (!settings.active)
                     continue;
-
+                Profiling.Profiler.BeginSample("GetBundle");
                 var target = postProcessLayer.GetBundle(settings.GetType()).settings;
+                Profiling.Profiler.EndSample();
+                if (!target.enabled) {
+	                continue;
+                }
+                
                 int count = settings.parameters.Count;
-
-                for (int i = 0; i < count; i++)
+                Profiling.Profiler.BeginSample("Set Values");
+                for (int i = 0; i < count; i++) {
                     target.parameters[i].SetValue(settings.parameters[i]);
+                }
+                Profiling.Profiler.EndSample();
             }
+            Profiling.Profiler.EndSample();
         }
 
         internal void UpdateSettings(PostProcessLayer postProcessLayer, Camera camera)
