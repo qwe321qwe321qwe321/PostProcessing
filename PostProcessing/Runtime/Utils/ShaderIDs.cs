@@ -91,6 +91,7 @@ namespace UnityEngine.Rendering.PostProcessing
         internal static readonly int Bloom_DirtTileOffset            = Shader.PropertyToID("_Bloom_DirtTileOffset");
 
         internal static readonly int ChromaticAberration_Amount      = Shader.PropertyToID("_ChromaticAberration_Amount");
+        internal static readonly int ChromaticAberration_Offset      = Shader.PropertyToID("_ChromaticAberration_Offset");
         internal static readonly int ChromaticAberration_SpectralLut = Shader.PropertyToID("_ChromaticAberration_SpectralLut");
 
         internal static readonly int Distortion_CenterScale          = Shader.PropertyToID("_Distortion_CenterScale");

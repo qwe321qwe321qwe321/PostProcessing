@@ -21,6 +21,9 @@ namespace UnityEngine.Rendering.PostProcessing
         /// </summary>
         [Range(0f, 1f), Tooltip("Amount of tangential distortion.")]
         public FloatParameter intensity = new FloatParameter { value = 0f };
+        
+        [Tooltip("The center point (screen center is [0.5, 0.5]).")]
+        public Vector2Parameter center = new Vector2Parameter { value = new Vector2(0.5f, 0.5f) };
 
         /// <summary>
         /// If <c>true</c>, it will use a faster variant of the effect for improved performances.
@@ -84,6 +87,7 @@ namespace UnityEngine.Rendering.PostProcessing
                 : "CHROMATIC_ABERRATION"
             );
             sheet.properties.SetFloat(ShaderIDs.ChromaticAberration_Amount, settings.intensity * 0.05f);
+            sheet.properties.SetVector(ShaderIDs.ChromaticAberration_Offset, settings.center - new Vector2(0.5f, 0.5f));
             sheet.properties.SetTexture(ShaderIDs.ChromaticAberration_SpectralLut, spectralLut);
         }
 

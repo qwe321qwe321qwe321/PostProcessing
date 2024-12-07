@@ -7,12 +7,14 @@ namespace UnityEditor.Rendering.PostProcessing
     {
         SerializedParameterOverride m_SpectralLut;
         SerializedParameterOverride m_Intensity;
+        SerializedParameterOverride m_Center;
         SerializedParameterOverride m_FastMode;
 
         public override void OnEnable()
         {
             m_SpectralLut = FindParameterOverride(x => x.spectralLut);
             m_Intensity = FindParameterOverride(x => x.intensity);
+            m_Center = FindParameterOverride(x => x.center);
             m_FastMode = FindParameterOverride(x => x.fastMode);
         }
 
@@ -22,6 +24,7 @@ namespace UnityEditor.Rendering.PostProcessing
 
             PropertyField(m_SpectralLut);
             PropertyField(m_Intensity);
+            PropertyField(m_Center);
             PropertyField(m_FastMode);
 
             if (m_FastMode.overrideState.boolValue && !m_FastMode.value.boolValue && EditorUtilities.isTargetingConsolesOrMobiles)
