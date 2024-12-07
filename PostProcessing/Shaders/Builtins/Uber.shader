@@ -42,6 +42,7 @@ Shader "Hidden/PostProcessing/Uber"
         // Chromatic aberration
         TEXTURE2D_SAMPLER2D(_ChromaticAberration_SpectralLut, sampler_ChromaticAberration_SpectralLut);
         half _ChromaticAberration_Amount;
+        half2 _ChromaticAberration_Offset; // UV space
 
         // Color grading
     #if COLOR_GRADING_HDR_3D
@@ -90,7 +91,7 @@ Shader "Hidden/PostProcessing/Uber"
             // https://twitter.com/pixelmager/status/717019757766123520
             #if CHROMATIC_ABERRATION
             {
-                float2 coords = 2.0 * uv - 1.0;
+                float2 coords = 2.0 * (uv - _ChromaticAberration_Offset) - 1.0;
                 float2 end = uv - coords * dot(coords, coords) * _ChromaticAberration_Amount;
 
                 float2 diff = end - uv;
@@ -114,7 +115,7 @@ Shader "Hidden/PostProcessing/Uber"
             }
             #elif CHROMATIC_ABERRATION_LOW
             {
-                float2 coords = 2.0 * uv - 1.0;
+                float2 coords = 2.0 * (uv - _ChromaticAberration_Offset) - 1.0;
                 float2 end = uv - coords * dot(coords, coords) * _ChromaticAberration_Amount;
                 float2 delta = (end - uv) / 3;
 
