@@ -1279,7 +1279,7 @@ namespace UnityEngine.Rendering.PostProcessing
 
             if (!breakBeforeColorGrading)
                 RenderEffect<ColorGrading>(context);
-            Profiler.BeginSample("[Custom] BeforeBuiltinUberStack");
+            // [Custom] BeforeBuiltinUberStack
             {
 	            List<SerializedBundleRef> list = sortedBundles[PostProcessEvent.BeforeBuiltinUberStack];
 	            int count = list.Count;
@@ -1290,7 +1290,6 @@ namespace UnityEngine.Rendering.PostProcessing
 		            RenderEffect(effect, context);
 	            }
             }
-            Profiler.EndSample();
 
             if (isFinalPass)
             {
