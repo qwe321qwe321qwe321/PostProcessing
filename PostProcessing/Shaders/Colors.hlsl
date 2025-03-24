@@ -34,7 +34,8 @@
 #endif
 
 #ifndef USE_FAST_SRGB
-    #if defined(SHADER_API_CONSOLE)
+    // Modified: FAST SRGB causes color darker on PS5, so we disable it.
+    #if defined(SHADER_API_CONSOLE) && !defined(SHADER_API_PS5)
         #define USE_FAST_SRGB 1
     #else
         #define USE_FAST_SRGB 0
